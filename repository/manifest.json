@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "3277e5e5-0e25-420e-9653-ad5219e01e69",
+    "name": "Pause Track ID",
+    "description": "Recognizes the last few seconds of paused playback with Chromaprint + AcoustID and shows the track title on screen.",
+    "overview": "Shazam-like pause recognition for Jellyfin",
+    "owner": "213sdfsdgf",
+    "category": "General",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Initial release.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/213sdfsdgf/jellyfin-pause-track-id/releases/download/v1.0.0.0/pause-track-id_1.0.0.0.zip",
+        "checksum": "def082767853701d8fa82c01274e1ee8",
+        "timestamp": "2026-05-05T23:18:14Z"
+      }
+    ]
+  }
+]

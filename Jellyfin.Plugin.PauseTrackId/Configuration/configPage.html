@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Pause Track ID</title>
+</head>
+<body>
+    <div id="PauseTrackIdConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="PauseTrackIdConfigForm">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="Enabled" type="checkbox" is="emby-checkbox" />
+                            <span>Enable pause-time recognition</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AcoustIdApiKey">AcoustID API key</label>
+                        <input id="AcoustIdApiKey" type="text" is="emby-input" />
+                        <div class="fieldDescription">Required for lookup requests. Get one from acoustid.org.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="FfmpegPath">ffmpeg path</label>
+                        <input id="FfmpegPath" type="text" is="emby-input" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="FpcalcPath">fpcalc path</label>
+                        <input id="FpcalcPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Chromaprint CLI. Usually installed by the chromaprint-tools package.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="RestrictToAudioItems" type="checkbox" is="emby-checkbox" />
+                            <span>Only trigger for audio library items</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AnalysisWindowSeconds">Clip length in seconds</label>
+                        <input id="AnalysisWindowSeconds" type="number" min="1" max="20" is="emby-input" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="RecognitionTimeoutSeconds">Recognition timeout in seconds</label>
+                        <input id="RecognitionTimeoutSeconds" type="number" min="5" max="120" is="emby-input" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MessageTimeoutMs">On-screen message timeout (ms)</label>
+                        <input id="MessageTimeoutMs" type="number" min="1000" max="60000" is="emby-input" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MinimumScore">Minimum AcoustID score (0-1)</label>
+                        <input id="MinimumScore" type="number" min="0" max="1" step="0.01" is="emby-input" />
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            const PauseTrackIdConfig = {
+                pluginUniqueId: '3277e5e5-0e25-420e-9653-ad5219e01e69'
+            };
+
+            document.querySelector('#PauseTrackIdConfigPage').addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
+                    document.querySelector('#Enabled').checked = config.Enabled;
+                    document.querySelector('#AcoustIdApiKey').value = config.AcoustIdApiKey || '';
+                    document.querySelector('#FfmpegPath').value = config.FfmpegPath || 'ffmpeg';
+                    document.querySelector('#FpcalcPath').value = config.FpcalcPath || 'fpcalc';
+                    document.querySelector('#RestrictToAudioItems').checked = config.RestrictToAudioItems;
+                    document.querySelector('#AnalysisWindowSeconds').value = config.AnalysisWindowSeconds;
+                    document.querySelector('#RecognitionTimeoutSeconds').value = config.RecognitionTimeoutSeconds;
+                    document.querySelector('#MessageTimeoutMs').value = config.MessageTimeoutMs;
+                    document.querySelector('#MinimumScore').value = config.MinimumScore;
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.querySelector('#PauseTrackIdConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
+                    config.Enabled = document.querySelector('#Enabled').checked;
+                    config.AcoustIdApiKey = document.querySelector('#AcoustIdApiKey').value;
+                    config.FfmpegPath = document.querySelector('#FfmpegPath').value;
+                    config.FpcalcPath = document.querySelector('#FpcalcPath').value;
+                    config.RestrictToAudioItems = document.querySelector('#RestrictToAudioItems').checked;
+                    config.AnalysisWindowSeconds = parseInt(document.querySelector('#AnalysisWindowSeconds').value, 10);
+                    config.RecognitionTimeoutSeconds = parseInt(document.querySelector('#RecognitionTimeoutSeconds').value, 10);
+                    config.MessageTimeoutMs = parseInt(document.querySelector('#MessageTimeoutMs').value, 10);
+                    config.MinimumScore = parseFloat(document.querySelector('#MinimumScore').value);
+                    ApiClient.updatePluginConfiguration(PauseTrackIdConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                return false;
+            });
+        </script>
+    </div>
+</body>
+</html>
