@@ -9,7 +9,7 @@ fi
 
 PUBLIC_ZIP_URL="$1"
 TARGET_ABI="$2"
-VERSION="${3:-1.0.0.0}"
+VERSION="${3:-1.0.1.0}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="$ROOT_DIR/Jellyfin.Plugin.PauseTrackId"
 OUT_DIR="$ROOT_DIR/artifacts/repository"
@@ -38,12 +38,12 @@ cat > "$MANIFEST_PATH" <<JSON
     "name": "Pause Track ID",
     "description": "Recognizes the last few seconds of paused playback with Chromaprint + AcoustID and shows the track title on screen.",
     "overview": "Shazam-like pause recognition for Jellyfin",
-    "owner": "Vladimir",
+    "owner": "213sdfsdgf",
     "category": "General",
     "versions": [
       {
         "version": "$VERSION",
-        "changelog": "Initial release.",
+        "changelog": "Use Jellyfin's configured FFmpeg for Chromaprint and remove the fpcalc dependency.",
         "targetAbi": "$TARGET_ABI",
         "sourceUrl": "$PUBLIC_ZIP_URL",
         "checksum": "$CHECKSUM",
