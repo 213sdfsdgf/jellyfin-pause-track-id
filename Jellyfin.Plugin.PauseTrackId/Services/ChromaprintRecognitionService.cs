@@ -5,21 +5,27 @@ using System.Text.Json;
 using Jellyfin.Plugin.PauseTrackId.Configuration;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.MediaEncoding;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.PauseTrackId.Services;
 
 /// <summary>
-/// Runs Chromaprint locally and AcoustID remotely.
+/// Uses Jellyfin's configured FFmpeg binary to generate a Chromaprint fingerprint
+/// and resolves it via AcoustID.
 /// </summary>
 public sealed class ChromaprintRecognitionService
 {
     private const string LookupEndpoint = "https://api.acoustid.org/v2/lookup";
     private readonly HttpClient _httpClient = new();
+    private readonly IMediaEncoder _mediaEncoder;
     private readonly ILogger<ChromaprintRecognitionService> _logger;
 
-    public ChromaprintRecognitionService(ILogger<ChromaprintRecognitionService> logger)
+    public ChromaprintRecognitionService(
+        IMediaEncoder mediaEncoder,
+        ILogger<ChromaprintRecognitionService> logger)
     {
+        _mediaEncoder = mediaEncoder;
         _logger = logger;
     }
 
@@ -35,6 +41,13 @@ public sealed class ChromaprintRecognitionService
         if (string.IsNullOrWhiteSpace(config.AcoustIdApiKey))
         {
             _logger.LogWarning("Pause Track ID skipped because AcoustID API key is not configured.");
+            return null;
+        }
+
+        var ffmpegPath = _mediaEncoder.EncoderPath;
+        if (string.IsNullOrWhiteSpace(ffmpegPath))
+        {
+            _logger.LogWarning("Pause Track ID skipped because Jellyfin does not have a working FFmpeg path.");
             return null;
         }
 
@@ -60,43 +73,29 @@ public sealed class ChromaprintRecognitionService
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(config.RecognitionTimeoutSeconds));
         var effectiveCancellationToken = timeoutCts.Token;
 
-        var workingDirectory = Path.Combine(plugin.DataFolderPath, "pause-track-id-temp");
-        Directory.CreateDirectory(workingDirectory);
+        var clipDuration = Math.Max(1, config.AnalysisWindowSeconds);
+        var currentPositionSeconds = Math.Max(0d, TimeSpan.FromTicks(eventArgs.PlaybackPositionTicks ?? 0).TotalSeconds);
+        var clipStartSeconds = Math.Max(0d, currentPositionSeconds - clipDuration);
 
-        var clipPath = Path.Combine(workingDirectory, $"clip-{Guid.NewGuid():N}.wav");
-
-        try
+        var fingerprint = await GenerateFingerprintAsync(ffmpegPath, filePath, clipStartSeconds, clipDuration, effectiveCancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(fingerprint.Fingerprint) || fingerprint.Duration <= 0)
         {
-            var clipDuration = Math.Max(1, config.AnalysisWindowSeconds);
-            var currentPositionSeconds = Math.Max(0d, TimeSpan.FromTicks(eventArgs.PlaybackPositionTicks ?? 0).TotalSeconds);
-            var clipStartSeconds = Math.Max(0d, currentPositionSeconds - clipDuration);
-
-            await ExtractClipAsync(config.FfmpegPath, filePath, clipPath, clipStartSeconds, clipDuration, effectiveCancellationToken).ConfigureAwait(false);
-            var fingerprint = await RunFpcalcAsync(config.FpcalcPath, clipPath, effectiveCancellationToken).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(fingerprint.Fingerprint) || fingerprint.Duration <= 0)
-            {
-                _logger.LogInformation("Pause Track ID got an empty Chromaprint fingerprint.");
-                return null;
-            }
-
-            var result = await LookupAsync(config.AcoustIdApiKey, fingerprint, config.MinimumScore, effectiveCancellationToken).ConfigureAwait(false);
-            if (result is null)
-            {
-                _logger.LogInformation("Pause Track ID could not find a confident AcoustID match for {Path}.", filePath);
-            }
-
-            return result;
+            _logger.LogInformation("Pause Track ID got an empty Chromaprint fingerprint.");
+            return null;
         }
-        finally
+
+        var result = await LookupAsync(config.AcoustIdApiKey, fingerprint, config.MinimumScore, effectiveCancellationToken).ConfigureAwait(false);
+        if (result is null)
         {
-            TryDelete(clipPath);
+            _logger.LogInformation("Pause Track ID could not find a confident AcoustID match for {Path}.", filePath);
         }
+
+        return result;
     }
 
-    private async Task ExtractClipAsync(
+    private async Task<FingerprintResult> GenerateFingerprintAsync(
         string ffmpegPath,
         string inputPath,
-        string outputPath,
         double clipStartSeconds,
         int clipDurationSeconds,
         CancellationToken cancellationToken)
@@ -104,8 +103,8 @@ public sealed class ChromaprintRecognitionService
         var processStartInfo = new ProcessStartInfo
         {
             FileName = ffmpegPath,
-            RedirectStandardError = true,
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
@@ -123,38 +122,15 @@ public sealed class ChromaprintRecognitionService
         processStartInfo.ArgumentList.Add("1");
         processStartInfo.ArgumentList.Add("-ar");
         processStartInfo.ArgumentList.Add("11025");
-        processStartInfo.ArgumentList.Add("-y");
-        processStartInfo.ArgumentList.Add(outputPath);
+        processStartInfo.ArgumentList.Add("-f");
+        processStartInfo.ArgumentList.Add("chromaprint");
+        processStartInfo.ArgumentList.Add("-fp_format");
+        processStartInfo.ArgumentList.Add("base64");
+        processStartInfo.ArgumentList.Add("-");
 
-        await RunProcessAsync(processStartInfo, "ffmpeg", cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<FingerprintResult> RunFpcalcAsync(string fpcalcPath, string clipPath, CancellationToken cancellationToken)
-    {
-        var processStartInfo = new ProcessStartInfo
-        {
-            FileName = fpcalcPath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        processStartInfo.ArgumentList.Add("-json");
-        processStartInfo.ArgumentList.Add(clipPath);
-
-        var output = await RunProcessAsync(processStartInfo, "fpcalc", cancellationToken).ConfigureAwait(false);
-
-        using var document = JsonDocument.Parse(output.StandardOutput);
-        var root = document.RootElement;
-        var fingerprint = root.TryGetProperty("fingerprint", out var fingerprintElement)
-            ? fingerprintElement.GetString() ?? string.Empty
-            : string.Empty;
-        var duration = root.TryGetProperty("duration", out var durationElement)
-            ? durationElement.GetInt32()
-            : 0;
-
-        return new FingerprintResult(fingerprint, duration);
+        var output = await RunProcessAsync(processStartInfo, "ffmpeg", cancellationToken).ConfigureAwait(false);
+        var fingerprint = output.StandardOutput.Trim();
+        return new FingerprintResult(fingerprint, clipDurationSeconds);
     }
 
     private async Task<TrackMatchResult?> LookupAsync(
@@ -295,23 +271,6 @@ public sealed class ChromaprintRecognitionService
             }
         }
         catch (InvalidOperationException)
-        {
-        }
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
         {
         }
     }

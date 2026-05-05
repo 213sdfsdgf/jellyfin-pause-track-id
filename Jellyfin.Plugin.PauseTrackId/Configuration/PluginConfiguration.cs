@@ -11,10 +11,6 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     public string AcoustIdApiKey { get; set; } = string.Empty;
 
-    public string FfmpegPath { get; set; } = "ffmpeg";
-
-    public string FpcalcPath { get; set; } = "fpcalc";
-
     public bool RestrictToAudioItems { get; set; } = true;
 
     public int AnalysisWindowSeconds { get; set; } = 5;

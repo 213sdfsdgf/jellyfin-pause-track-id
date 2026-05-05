@@ -22,15 +22,8 @@
                         <div class="fieldDescription">Required for lookup requests. Get one from acoustid.org.</div>
                     </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="FfmpegPath">ffmpeg path</label>
-                        <input id="FfmpegPath" type="text" is="emby-input" />
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="FpcalcPath">fpcalc path</label>
-                        <input id="FpcalcPath" type="text" is="emby-input" />
-                        <div class="fieldDescription">Chromaprint CLI. Usually installed by the chromaprint-tools package.</div>
+                    <div class="fieldDescription" style="margin: 1em 0 1.5em 0;">
+                        This plugin automatically uses Jellyfin's configured FFmpeg binary and generates Chromaprint fingerprints directly through FFmpeg. No manual ffmpeg or fpcalc path is required.
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -79,8 +72,6 @@
                 ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
                     document.querySelector('#Enabled').checked = config.Enabled;
                     document.querySelector('#AcoustIdApiKey').value = config.AcoustIdApiKey || '';
-                    document.querySelector('#FfmpegPath').value = config.FfmpegPath || 'ffmpeg';
-                    document.querySelector('#FpcalcPath').value = config.FpcalcPath || 'fpcalc';
                     document.querySelector('#RestrictToAudioItems').checked = config.RestrictToAudioItems;
                     document.querySelector('#AnalysisWindowSeconds').value = config.AnalysisWindowSeconds;
                     document.querySelector('#RecognitionTimeoutSeconds').value = config.RecognitionTimeoutSeconds;
@@ -96,8 +87,6 @@
                 ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
                     config.Enabled = document.querySelector('#Enabled').checked;
                     config.AcoustIdApiKey = document.querySelector('#AcoustIdApiKey').value;
-                    config.FfmpegPath = document.querySelector('#FfmpegPath').value;
-                    config.FpcalcPath = document.querySelector('#FpcalcPath').value;
                     config.RestrictToAudioItems = document.querySelector('#RestrictToAudioItems').checked;
                     config.AnalysisWindowSeconds = parseInt(document.querySelector('#AnalysisWindowSeconds').value, 10);
                     config.RecognitionTimeoutSeconds = parseInt(document.querySelector('#RecognitionTimeoutSeconds').value, 10);
