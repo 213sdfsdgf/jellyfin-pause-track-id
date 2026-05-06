@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Jellyfin.Plugin.PauseTrackId.Configuration;
+using Jellyfin.Plugin.PauseTrackId.Helper;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Session;
@@ -18,20 +19,29 @@ public sealed class PauseRecognitionHostedService : IHostedService, IDisposable
     private readonly ConcurrentDictionary<string, byte> _activeRecognitions = new(StringComparer.Ordinal);
     private readonly ISessionManager _sessionManager;
     private readonly ChromaprintRecognitionService _recognitionService;
+    private readonly RecognitionResultStore _recognitionResultStore;
     private readonly ILogger<PauseRecognitionHostedService> _logger;
 
     public PauseRecognitionHostedService(
         ISessionManager sessionManager,
         ChromaprintRecognitionService recognitionService,
+        RecognitionResultStore recognitionResultStore,
         ILogger<PauseRecognitionHostedService> logger)
     {
         _sessionManager = sessionManager;
         _recognitionService = recognitionService;
+        _recognitionResultStore = recognitionResultStore;
         _logger = logger;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        var config = Plugin.Instance?.Configuration;
+        if (config is not null)
+        {
+            WebInjector.TryRegister(config, _logger);
+        }
+
         _sessionManager.PlaybackProgress += OnPlaybackProgress;
         return Task.CompletedTask;
     }
@@ -98,16 +108,26 @@ public sealed class PauseRecognitionHostedService : IHostedService, IDisposable
                     return;
                 }
 
-                await _sessionManager.SendMessageCommand(
-                    string.Empty,
-                    eventArgs.Session.Id,
-                    new MessageCommand
-                    {
-                        Header = "Track recognized",
-                        Text = match.DisplayText,
-                        TimeoutMs = config.MessageTimeoutMs
-                    },
-                    CancellationToken.None).ConfigureAwait(false);
+                _recognitionResultStore.Publish(
+                    eventArgs.Session.DeviceId,
+                    match.DisplayText,
+                    match.Score,
+                    eventArgs.Item?.Id.ToString(),
+                    config.WebButtonHideSeconds);
+
+                if (config.ShowDisplayMessageFallback)
+                {
+                    await _sessionManager.SendMessageCommand(
+                        string.Empty,
+                        eventArgs.Session.Id,
+                        new MessageCommand
+                        {
+                            Header = "Track recognized",
+                            Text = match.DisplayText,
+                            TimeoutMs = config.MessageTimeoutMs
+                        },
+                        CancellationToken.None).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {

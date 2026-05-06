@@ -9,7 +9,7 @@ fi
 
 PUBLIC_ZIP_URL="$1"
 TARGET_ABI="$2"
-VERSION="${3:-1.0.1.0}"
+VERSION="${3:-1.0.2.0}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="$ROOT_DIR/Jellyfin.Plugin.PauseTrackId"
 OUT_DIR="$ROOT_DIR/artifacts/repository"
@@ -43,7 +43,7 @@ cat > "$MANIFEST_PATH" <<JSON
     "versions": [
       {
         "version": "$VERSION",
-        "changelog": "Use Jellyfin's configured FFmpeg for Chromaprint and remove the fpcalc dependency.",
+        "changelog": "Add a dedicated Jellyfin Web recognition button via isolated File Transformation injection, while keeping Intro Skipper compatibility.",
         "targetAbi": "$TARGET_ABI",
         "sourceUrl": "$PUBLIC_ZIP_URL",
         "checksum": "$CHECKSUM",

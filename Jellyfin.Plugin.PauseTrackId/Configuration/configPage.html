@@ -16,6 +16,21 @@
                         </label>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableWebButton" type="checkbox" is="emby-checkbox" />
+                            <span>Show a web-player button when a track is recognized</span>
+                        </label>
+                        <div class="fieldDescription">Uses the same safe pattern as Intro Skipper: a namespaced web injection through the File Transformation plugin. It does not patch Intro Skipper's button logic.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="ShowDisplayMessageFallback" type="checkbox" is="emby-checkbox" />
+                            <span>Also show the legacy popup fallback</span>
+                        </label>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="AcoustIdApiKey">AcoustID API key</label>
                         <input id="AcoustIdApiKey" type="text" is="emby-input" />
@@ -23,7 +38,7 @@
                     </div>
 
                     <div class="fieldDescription" style="margin: 1em 0 1.5em 0;">
-                        This plugin automatically uses Jellyfin's configured FFmpeg binary and generates Chromaprint fingerprints directly through FFmpeg. No manual ffmpeg or fpcalc path is required.
+                        This plugin automatically uses Jellyfin's configured FFmpeg binary and generates Chromaprint fingerprints directly through FFmpeg. No manual ffmpeg or fpcalc path is required. For the clickable web button, install the File Transformation plugin so Pause Track ID can inject its own isolated client script.
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -41,6 +56,11 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="RecognitionTimeoutSeconds">Recognition timeout in seconds</label>
                         <input id="RecognitionTimeoutSeconds" type="number" min="5" max="120" is="emby-input" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="WebButtonHideSeconds">Web button auto-hide (seconds)</label>
+                        <input id="WebButtonHideSeconds" type="number" min="3" max="60" is="emby-input" />
                     </div>
 
                     <div class="inputContainer">
@@ -71,10 +91,13 @@
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
                     document.querySelector('#Enabled').checked = config.Enabled;
+                    document.querySelector('#EnableWebButton').checked = config.EnableWebButton;
+                    document.querySelector('#ShowDisplayMessageFallback').checked = config.ShowDisplayMessageFallback;
                     document.querySelector('#AcoustIdApiKey').value = config.AcoustIdApiKey || '';
                     document.querySelector('#RestrictToAudioItems').checked = config.RestrictToAudioItems;
                     document.querySelector('#AnalysisWindowSeconds').value = config.AnalysisWindowSeconds;
                     document.querySelector('#RecognitionTimeoutSeconds').value = config.RecognitionTimeoutSeconds;
+                    document.querySelector('#WebButtonHideSeconds').value = config.WebButtonHideSeconds;
                     document.querySelector('#MessageTimeoutMs').value = config.MessageTimeoutMs;
                     document.querySelector('#MinimumScore').value = config.MinimumScore;
                     Dashboard.hideLoadingMsg();
@@ -86,10 +109,13 @@
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(PauseTrackIdConfig.pluginUniqueId).then(function (config) {
                     config.Enabled = document.querySelector('#Enabled').checked;
+                    config.EnableWebButton = document.querySelector('#EnableWebButton').checked;
+                    config.ShowDisplayMessageFallback = document.querySelector('#ShowDisplayMessageFallback').checked;
                     config.AcoustIdApiKey = document.querySelector('#AcoustIdApiKey').value;
                     config.RestrictToAudioItems = document.querySelector('#RestrictToAudioItems').checked;
                     config.AnalysisWindowSeconds = parseInt(document.querySelector('#AnalysisWindowSeconds').value, 10);
                     config.RecognitionTimeoutSeconds = parseInt(document.querySelector('#RecognitionTimeoutSeconds').value, 10);
+                    config.WebButtonHideSeconds = parseInt(document.querySelector('#WebButtonHideSeconds').value, 10);
                     config.MessageTimeoutMs = parseInt(document.querySelector('#MessageTimeoutMs').value, 10);
                     config.MinimumScore = parseFloat(document.querySelector('#MinimumScore').value);
                     ApiClient.updatePluginConfiguration(PauseTrackIdConfig.pluginUniqueId, config).then(function (result) {

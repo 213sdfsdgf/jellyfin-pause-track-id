@@ -9,6 +9,12 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 {
     public bool Enabled { get; set; } = true;
 
+    public bool EnableWebButton { get; set; } = true;
+
+    public bool ShowDisplayMessageFallback { get; set; } = false;
+
+    public int WebButtonHideSeconds { get; set; } = 12;
+
     public string AcoustIdApiKey { get; set; } = string.Empty;
 
     public bool RestrictToAudioItems { get; set; } = true;

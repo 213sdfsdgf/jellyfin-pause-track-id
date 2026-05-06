@@ -12,6 +12,7 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<RecognitionResultStore>();
         serviceCollection.AddSingleton<ChromaprintRecognitionService>();
         serviceCollection.AddHostedService<PauseRecognitionHostedService>();
     }
