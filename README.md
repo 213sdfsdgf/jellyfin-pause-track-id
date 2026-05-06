@@ -18,6 +18,15 @@ The preferred UI now targets **Jellyfin Web** through an isolated injected clien
 
 The web button follows the same general integration pattern used by Intro Skipper, but stays isolated from Intro Skipper's own DOM/classes/logic so the two interfaces do not conflict.
 
+## Hotfix note for 1.0.2.1
+
+Version `1.0.2.1` is a startup-safety hotfix.
+
+- the optional Jellyfin Web button injector is now wrapped so injection/registration failures do **not** crash Jellyfin startup
+- the web button is now **disabled by default** on fresh installs until explicitly enabled in plugin settings
+
+If you upgrade from `1.0.2.0`, Jellyfin should be able to start even if File Transformation integration is unavailable or throws during registration.
+
 ## Why this version is better
 
 The plugin no longer asks the user to configure paths for `ffmpeg` or `fpcalc`.

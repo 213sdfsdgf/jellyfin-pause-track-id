@@ -39,7 +39,14 @@ public sealed class PauseRecognitionHostedService : IHostedService, IDisposable
         var config = Plugin.Instance?.Configuration;
         if (config is not null)
         {
-            WebInjector.TryRegister(config, _logger);
+            try
+            {
+                WebInjector.TryRegister(config, _logger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Pause Track ID failed to initialize the optional web-button injector. Jellyfin startup will continue without it.");
+            }
         }
 
         _sessionManager.PlaybackProgress += OnPlaybackProgress;

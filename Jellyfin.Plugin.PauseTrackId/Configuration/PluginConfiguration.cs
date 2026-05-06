@@ -9,7 +9,7 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 {
     public bool Enabled { get; set; } = true;
 
-    public bool EnableWebButton { get; set; } = true;
+    public bool EnableWebButton { get; set; } = false;
 
     public bool ShowDisplayMessageFallback { get; set; } = false;
 
